@@ -138,12 +138,8 @@ export async function POST(request) {
 
 function renderStarsText(rating) {
   const full = Math.floor(rating);
-  const half = rating % 1 >= 0.5;
-  let text = '\u2605'.repeat(full);
-  if (half) text += '\u00BD';
-  const empty = 5 - full - (half ? 1 : 0);
-  text += '\u2606'.repeat(empty);
-  return text;
+  const empty = 5 - full;
+  return '\u2605'.repeat(full) + '\u2606'.repeat(empty);
 }
 
 function renderStoryJSX(scene, tokens, coverW, coverH) {
@@ -152,7 +148,12 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
   const titleFontFamily = tokens.titleFont === 'serif' ? 'Lora' : 'Inter';
   const metaFontFamily = 'Inter';
 
-  // Empty placeholder where cover will be composited
+  // Force light text for cinematic style
+  const isCinematic = scene.style === 'cinematic';
+  const textPrimary = isCinematic ? '#F5F5F5' : tokens.textPrimary;
+  const textSecondary = isCinematic ? 'rgba(255,255,255,0.6)' : tokens.textSecondary;
+  const starColor = isCinematic ? '#E8C87A' : tokens.starColor;
+
   const coverPlaceholder = {
     type: 'div',
     props: { style: { width: coverW, height: coverH, flexShrink: 0 } },
@@ -163,7 +164,7 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
     props: {
       style: {
         marginTop: 48, fontSize: scene.title.length > 40 ? 42 : 52,
-        fontWeight: 700, color: tokens.textPrimary, textAlign: 'center',
+        fontWeight: 700, color: textPrimary, textAlign: 'center',
         fontFamily: titleFontFamily, lineHeight: 1.2, maxWidth: 920,
       },
       children: scene.title,
@@ -174,9 +175,9 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
     type: 'div',
     props: {
       style: {
-        marginTop: 16, fontSize: 28, color: tokens.textSecondary,
+        marginTop: 16, fontSize: 28, color: textSecondary,
         textAlign: 'center', fontFamily: metaFontFamily,
-        ...(scene.style === 'cinematic' ? { textTransform: 'uppercase', letterSpacing: 3, fontSize: 26 } : {}),
+        ...(isCinematic ? { textTransform: 'uppercase', letterSpacing: 3, fontSize: 26 } : {}),
       },
       children: scene.author,
     },
@@ -184,17 +185,17 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
 
   const starsEl = stars ? {
     type: 'div',
-    props: { style: { marginTop: 32, fontSize: 36, color: tokens.starColor, letterSpacing: 4 }, children: stars },
+    props: { style: { marginTop: 32, fontSize: 36, color: starColor, letterSpacing: 4 }, children: stars },
   } : null;
 
   const dateEl = dateText ? {
     type: 'div',
-    props: { style: { marginTop: 24, fontSize: 22, color: tokens.textSecondary, textAlign: 'center', fontStyle: 'italic' }, children: dateText },
+    props: { style: { marginTop: 24, fontSize: 22, color: textSecondary, textAlign: 'center', fontStyle: 'italic' }, children: dateText },
   } : null;
 
   const brandingEl = scene.showBranding ? {
     type: 'div',
-    props: { style: { position: 'absolute', bottom: 40, fontSize: 16, color: tokens.textSecondary, opacity: 0.5 }, children: 'made with shelfie' },
+    props: { style: { position: 'absolute', bottom: 40, fontSize: 16, color: textSecondary, opacity: 0.5 }, children: 'made with shelfie' },
   } : null;
 
   if (scene.style === 'retro') {
@@ -202,7 +203,7 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
       type: 'div',
       props: {
         style: {
-          width: WIDTH, height: HEIGHT, display: 'flex', flexDirection: 'column',
+          width: 1080, height: 1920, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', background: tokens.background,
           padding: tokens.safeZonePadding, fontFamily: metaFontFamily,
         },
@@ -213,11 +214,11 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
               style: {
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 background: tokens.cardBg || '#FFFDF5', borderRadius: 24, padding: 48,
-                border: '1px solid rgba(0,0,0,0.06)', maxWidth: WIDTH - tokens.safeZonePadding * 2,
+                border: '1px solid rgba(0,0,0,0.06)', maxWidth: 1080 - tokens.safeZonePadding * 2,
               },
               children: [
                 coverPlaceholder,
-                { type: 'div', props: { style: { width: 60, height: 2, background: tokens.starColor, marginTop: 40, marginBottom: 32, borderRadius: 1 } } },
+                { type: 'div', props: { style: { width: 60, height: 2, background: starColor, marginTop: 40, marginBottom: 32, borderRadius: 1 } } },
                 titleEl, authorEl, starsEl, dateEl,
               ].filter(Boolean),
             },
@@ -233,8 +234,9 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
       type: 'div',
       props: {
         style: {
-          width: WIDTH, height: HEIGHT, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'flex-end', background: tokens.background,
+          width: 1080, height: 1920, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'flex-end',
+          background: `linear-gradient(180deg, ${scene.palette.darkMuted} 0%, #0A0A0A 60%, #000000 100%)`,
           padding: tokens.safeZonePadding, paddingBottom: 160, fontFamily: metaFontFamily,
         },
         children: [
@@ -250,7 +252,7 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
     type: 'div',
     props: {
       style: {
-        width: WIDTH, height: HEIGHT, display: 'flex', flexDirection: 'column',
+        width: 1080, height: 1920, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', background: tokens.background,
         padding: tokens.safeZonePadding, fontFamily: metaFontFamily,
       },
