@@ -6,8 +6,11 @@ const nextConfig = {
       { protocol: 'https', hostname: 'books.google.com' },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@resvg/resvg-js', 'sharp'],
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('@resvg/resvg-js', 'sharp');
+    }
+    return config;
   },
 };
 
