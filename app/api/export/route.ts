@@ -94,10 +94,16 @@ export async function POST(request) {
 
     // 3. Fetch and composite cover image on top
     try {
-      const coverUrl = scene.coverUrl.startsWith('http')
-        ? scene.coverUrl
-        : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}${scene.coverUrl}`;
-      const coverRes = await fetch(coverUrl);
+      let coverUrl = scene.coverUrl;
+      if (coverUrl.includes('/api/covers/proxy?url=')) {
+        const encoded = coverUrl.split('/api/covers/proxy?url=')[1];
+        coverUrl = decodeURIComponent(encoded);
+      } else if (!coverUrl.startsWith('http')) {
+        coverUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}${coverUrl}`;
+      }
+      const coverRes = await fetch(coverUrl, {
+        headers: { 'User-Agent': 'Shelfie/1.0' },
+      });
       if (coverRes.ok) {
         const coverBuffer = Buffer.from(await coverRes.arrayBuffer());
         const resizedCover = await sharp(coverBuffer)
