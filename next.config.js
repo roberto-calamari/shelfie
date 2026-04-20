@@ -6,9 +6,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'books.google.com' },
     ],
   },
-  experimental: {
-    serverActions: true,
-  },
+  serverExternalPackages: ['@resvg/resvg-js', 'sharp'],
 };
 
 module.exports = nextConfig;
