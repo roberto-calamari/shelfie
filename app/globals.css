@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --shell-bg: #FAF7F2;
+  --shell-surface: #F5F0E8;
+  --shell-border: #E8E0D4;
+  --shell-muted: #B8AFA3;
+  --shell-text: #3D3530;
+  --shell-accent: #C4956A;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--shell-bg);
+  color: var(--shell-text);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* PWA standalone mode */
+@media all and (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Book page fanning loader */
+@keyframes fanPages {
+  0%, 100% { transform: rotate(-3deg) scaleY(1); }
+  25% { transform: rotate(2deg) scaleY(0.97); }
+  50% { transform: rotate(-2deg) scaleY(1.03); }
+  75% { transform: rotate(3deg) scaleY(0.98); }
+}
+
+.loader-book {
+  animation: fanPages 1.2s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+/* Star rating input */
+.star-input {
+  cursor: pointer;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.star-input:active {
+  transform: scale(1.3);
+}
+
+/* Smooth step transitions */
+.step-enter {
+  opacity: 0;
+  transform: translateX(24px);
+}
+.step-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Cover grid hover */
+.cover-option {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.cover-option:active {
+  transform: scale(0.96);
+}
+
+/* Hide scrollbar on cover picker */
+.cover-grid::-webkit-scrollbar {
+  display: none;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
