@@ -17,7 +17,7 @@ export const colorPaletteSchema = z.object({
 });
 
 export const storySceneSchema = z.object({
-  coverUrl: z.string().url(),
+  coverUrl: z.string().min(1),
   coverWidth: z.number().positive(),
   coverHeight: z.number().positive(),
   title: z.string().min(1).max(500),
