@@ -37,6 +37,24 @@ function getFontConfig() {
   return fonts;
 }
 
+// Fetch with retry for cover reliability
+async function fetchWithRetry(url, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Shelfie/1.0' },
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) return res;
+      console.warn(`Cover fetch attempt ${i + 1} returned ${res.status}`);
+    } catch (e) {
+      console.warn(`Cover fetch attempt ${i + 1} failed:`, e.message);
+      if (i < retries - 1) await new Promise(r => setTimeout(r, 500));
+    }
+  }
+  return null;
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -60,26 +78,10 @@ export async function POST(request) {
       displayWidth = displayHeight * coverAspect;
     }
 
-    let coverW = Math.round(displayWidth);
-    let coverH = Math.round(displayHeight);
-    if (scene.style === 'retro') {
-      coverW = Math.round(displayWidth * 0.85);
-      coverH = Math.round(displayHeight * 0.85);
-    } else if (scene.style === 'cinematic') {
-      coverW = Math.round(displayWidth * 0.9);
-      coverH = Math.round(displayHeight * 0.9);
-    }
-
-    // Compute cover position
+    const coverW = Math.round(displayWidth);
+    const coverH = Math.round(displayHeight);
     const coverX = Math.round((WIDTH - coverW) / 2);
-    let coverY;
-    if (scene.style === 'cinematic') {
-      coverY = Math.round(HEIGHT * 0.15);
-    } else if (scene.style === 'retro') {
-      coverY = Math.round((HEIGHT - coverH) / 2 - 140);
-    } else {
-      coverY = Math.round((HEIGHT - coverH) / 2 - 100);
-    }
+    const coverY = Math.round((HEIGHT - coverH) / 2 - 100);
 
     // 1. Render text/background via Satori (no cover image)
     const element = renderStoryJSX(scene, tokens, coverW, coverH);
@@ -92,7 +94,7 @@ export async function POST(request) {
     // 2. Convert SVG to PNG
     let result = await sharp(Buffer.from(svg)).resize(WIDTH, HEIGHT).png().toBuffer();
 
-    // 3. Fetch and composite cover image on top
+    // 3. Fetch and composite cover image on top (with retry)
     try {
       let coverUrl = scene.coverUrl;
       if (coverUrl.includes('/api/covers/proxy?url=')) {
@@ -101,10 +103,9 @@ export async function POST(request) {
       } else if (!coverUrl.startsWith('http')) {
         coverUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}${coverUrl}`;
       }
-      const coverRes = await fetch(coverUrl, {
-        headers: { 'User-Agent': 'Shelfie/1.0' },
-      });
-      if (coverRes.ok) {
+
+      const coverRes = await fetchWithRetry(coverUrl);
+      if (coverRes) {
         const coverBuffer = Buffer.from(await coverRes.arrayBuffer());
         const resizedCover = await sharp(coverBuffer)
           .resize(coverW, coverH, { fit: 'cover' })
@@ -115,6 +116,8 @@ export async function POST(request) {
           .composite([{ input: resizedCover, left: coverX, top: coverY }])
           .png({ quality: 95 })
           .toBuffer();
+      } else {
+        console.warn('All cover fetch attempts failed for:', coverUrl);
       }
     } catch (e) {
       console.warn('Could not composite cover:', e);
@@ -145,14 +148,6 @@ function renderStarsText(rating) {
 function renderStoryJSX(scene, tokens, coverW, coverH) {
   const dateText = scene.finishedDate ? formatFinishedDate(scene.finishedDate) : '';
   const stars = scene.rating !== undefined ? renderStarsText(scene.rating) : '';
-  const titleFontFamily = tokens.titleFont === 'serif' ? 'Lora' : 'Inter';
-  const metaFontFamily = 'Inter';
-
-  // Force light text for cinematic style
-  const isCinematic = scene.style === 'cinematic';
-  const textPrimary = isCinematic ? '#F5F5F5' : tokens.textPrimary;
-  const textSecondary = isCinematic ? 'rgba(255,255,255,0.6)' : tokens.textSecondary;
-  const starColor = isCinematic ? '#E8C87A' : tokens.starColor;
 
   const coverPlaceholder = {
     type: 'div',
@@ -164,8 +159,8 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
     props: {
       style: {
         marginTop: 48, fontSize: scene.title.length > 40 ? 42 : 52,
-        fontWeight: 700, color: textPrimary, textAlign: 'center',
-        fontFamily: titleFontFamily, lineHeight: 1.2, maxWidth: 920,
+        fontWeight: 700, color: tokens.textPrimary, textAlign: 'center',
+        fontFamily: 'Lora', lineHeight: 1.2, maxWidth: 920,
       },
       children: scene.title,
     },
@@ -175,86 +170,57 @@ function renderStoryJSX(scene, tokens, coverW, coverH) {
     type: 'div',
     props: {
       style: {
-        marginTop: 16, fontSize: 28, color: textSecondary,
-        textAlign: 'center', fontFamily: metaFontFamily,
-        ...(isCinematic ? { textTransform: 'uppercase', letterSpacing: 3, fontSize: 26 } : {}),
+        marginTop: 16, fontSize: 28, color: tokens.textSecondary,
+        textAlign: 'center', fontFamily: 'Inter',
       },
       children: scene.author,
     },
   };
 
+  // Gold stars, always visible
   const starsEl = stars ? {
     type: 'div',
-    props: { style: { marginTop: 32, fontSize: 36, color: starColor, letterSpacing: 4 }, children: stars },
+    props: {
+      style: {
+        marginTop: 32, fontSize: 44, letterSpacing: 6,
+        color: '#F5C518',
+      },
+      children: stars,
+    },
   } : null;
 
   const dateEl = dateText ? {
     type: 'div',
-    props: { style: { marginTop: 24, fontSize: 22, color: textSecondary, textAlign: 'center', fontStyle: 'italic' }, children: dateText },
+    props: {
+      style: {
+        marginTop: 24, fontSize: 22, color: tokens.textSecondary,
+        textAlign: 'center', fontStyle: 'italic', fontFamily: 'Inter',
+      },
+      children: dateText,
+    },
   } : null;
 
+  // More prominent watermark
   const brandingEl = scene.showBranding ? {
     type: 'div',
-    props: { style: { position: 'absolute', bottom: 40, fontSize: 16, color: textSecondary, opacity: 0.5 }, children: 'made with shelfie' },
+    props: {
+      style: {
+        position: 'absolute', bottom: 44, left: 0, right: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 20, color: 'rgba(255,255,255,0.55)',
+        fontFamily: 'Lora', letterSpacing: 1.5,
+      },
+      children: 'shelfie',
+    },
   } : null;
 
-  if (scene.style === 'retro') {
-    return {
-      type: 'div',
-      props: {
-        style: {
-          width: 1080, height: 1920, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', background: tokens.background,
-          padding: tokens.safeZonePadding, fontFamily: metaFontFamily,
-        },
-        children: [
-          {
-            type: 'div',
-            props: {
-              style: {
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                background: tokens.cardBg || '#FFFDF5', borderRadius: 24, padding: 48,
-                border: '1px solid rgba(0,0,0,0.06)', maxWidth: 1080 - tokens.safeZonePadding * 2,
-              },
-              children: [
-                coverPlaceholder,
-                { type: 'div', props: { style: { width: 60, height: 2, background: starColor, marginTop: 40, marginBottom: 32, borderRadius: 1 } } },
-                titleEl, authorEl, starsEl, dateEl,
-              ].filter(Boolean),
-            },
-          },
-          brandingEl,
-        ].filter(Boolean),
-      },
-    };
-  }
-
-  if (scene.style === 'cinematic') {
-    return {
-      type: 'div',
-      props: {
-        style: {
-          width: 1080, height: 1920, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'flex-end',
-          background: `linear-gradient(180deg, ${scene.palette.darkMuted} 0%, #0A0A0A 60%, #000000 100%)`,
-          padding: tokens.safeZonePadding, paddingBottom: 160, fontFamily: metaFontFamily,
-        },
-        children: [
-          tokens.overlay ? { type: 'div', props: { style: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: tokens.overlay } } } : null,
-          titleEl, authorEl, starsEl, dateEl, brandingEl,
-        ].filter(Boolean),
-      },
-    };
-  }
-
-  // Dreamy (default)
   return {
     type: 'div',
     props: {
       style: {
         width: 1080, height: 1920, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center', background: tokens.background,
-        padding: tokens.safeZonePadding, fontFamily: metaFontFamily,
+        padding: tokens.safeZonePadding, fontFamily: 'Inter',
       },
       children: [
         tokens.overlay ? { type: 'div', props: { style: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: tokens.overlay } } } : null,
