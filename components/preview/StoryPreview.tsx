@@ -244,11 +244,16 @@ function CinematicPreview({ scene, tokens }: { scene: StoryScene; tokens: StyleT
   const { w, h } = computeCoverDims(scene, 800, 750);
   const dateText = scene.finishedDate ? formatFinishedDate(scene.finishedDate) : '';
 
+  // Always use light text for cinematic regardless of palette
+  const textMain = '#F5F5F5';
+  const textSub = 'rgba(255,255,255,0.6)';
+  const starCol = tokens.starColor === '#1E1E1E' ? '#E8C87A' : tokens.starColor;
+
   return (
     <div
       style={{
         width: 1080, height: 1920,
-        background: tokens.background,
+        background: `linear-gradient(180deg, ${scene.palette.darkMuted} 0%, #0A0A0A 60%, #000000 100%)`,
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'flex-end',
         padding: tokens.safeZonePadding,
@@ -267,32 +272,33 @@ function CinematicPreview({ scene, tokens }: { scene: StoryScene; tokens: StyleT
         style={{
           position: 'absolute', top: '15%', borderRadius: 12,
           boxShadow: '0 32px 100px rgba(0,0,0,0.6)',
+          zIndex: 1,
         }}
       />
       <h3 style={{
         fontSize: scene.title.length > 40 ? 40 : 50,
-        fontWeight: 700, color: tokens.textPrimary,
+        fontWeight: 700, color: textMain,
         textAlign: 'center', lineHeight: 1.2,
-        letterSpacing: 1, position: 'relative', zIndex: 1,
+        letterSpacing: 1, position: 'relative', zIndex: 2,
       }}>
         {scene.title}
       </h3>
       <p style={{
-        marginTop: 16, fontSize: 26, color: tokens.textSecondary,
+        marginTop: 16, fontSize: 26, color: textSub,
         textAlign: 'center', textTransform: 'uppercase',
-        letterSpacing: 3, position: 'relative', zIndex: 1,
+        letterSpacing: 3, position: 'relative', zIndex: 2,
       }}>
         {scene.author}
       </p>
       {scene.rating !== undefined && (
-        <div style={{ marginTop: 28, position: 'relative', zIndex: 1 }}>
-          <Stars rating={scene.rating} color={tokens.starColor} />
+        <div style={{ marginTop: 28, position: 'relative', zIndex: 2 }}>
+          <Stars rating={scene.rating} color={starCol} />
         </div>
       )}
       {dateText && (
         <p style={{
-          marginTop: 20, fontSize: 20, color: tokens.textSecondary,
-          textAlign: 'center', position: 'relative', zIndex: 1,
+          marginTop: 20, fontSize: 20, color: textSub,
+          textAlign: 'center', position: 'relative', zIndex: 2,
         }}>
           {dateText}
         </p>
@@ -300,7 +306,7 @@ function CinematicPreview({ scene, tokens }: { scene: StoryScene; tokens: StyleT
       {scene.showBranding && (
         <p style={{
           position: 'absolute', bottom: 40, fontSize: 16,
-          color: 'rgba(255,255,255,0.3)',
+          color: 'rgba(255,255,255,0.3)', zIndex: 2,
         }}>
           made with shelfie
         </p>
