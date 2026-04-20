@@ -6,12 +6,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'books.google.com' },
     ],
   },
-  webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push('@resvg/resvg-js', 'sharp');
-    }
-    return config;
-  },
 };
 
 module.exports = nextConfig;
