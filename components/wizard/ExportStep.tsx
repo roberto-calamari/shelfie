@@ -4,7 +4,6 @@ import { useEffect, useCallback } from 'react';
 import { useWizardStore } from '@/lib/store';
 import { StepMotion } from '@/components/ui/StepMotion';
 import { BookLoader } from '@/components/ui/BookLoader';
-import { StoryPreview } from '@/components/preview/StoryPreview';
 
 export function ExportStep() {
   const {
@@ -15,7 +14,6 @@ export function ExportStep() {
 
   const scene = getScene();
 
-  // Generate PNG on mount
   useEffect(() => {
     if (exportedImageUrl) return;
 
@@ -27,9 +25,7 @@ export function ExportStep() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scene }),
         });
-
         if (!res.ok) throw new Error('Export failed');
-
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         setExportedImageUrl(url);
@@ -41,41 +37,22 @@ export function ExportStep() {
     };
 
     generate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleShare = useCallback(async () => {
     if (!exportedImageUrl) return;
-
     try {
       const res = await fetch(exportedImageUrl);
       const blob = await res.blob();
       const file = new File([blob], 'shelfie-story.png', { type: 'image/png' });
-
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'My Shelfie',
-        });
-        return;
+        await navigator.share({ files: [file], title: 'My Shelfie' });
       }
     } catch (err) {
-      // Share cancelled or failed — fall through to save
-      if ((err as Error)?.name === 'AbortError') return;
+      if ((err as Error)?.name !== 'AbortError') {
+        console.error('Share failed:', err);
+      }
     }
-
-    // Fallback: trigger download
-    handleSave();
-  }, [exportedImageUrl]);
-
-  const handleSave = useCallback(() => {
-    if (!exportedImageUrl) return;
-    const a = document.createElement('a');
-    a.href = exportedImageUrl;
-    a.download = 'shelfie-story.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   }, [exportedImageUrl]);
 
   const supportsShare = typeof navigator !== 'undefined' && !!navigator.share;
@@ -83,62 +60,47 @@ export function ExportStep() {
   return (
     <StepMotion>
       <div className="flex-1 flex flex-col items-center px-6 pt-6">
-        {/* Generating state */}
         {isExporting && !exportedImageUrl && (
           <div className="flex-1 flex items-center justify-center">
             <BookLoader message="Creating your story…" />
           </div>
         )}
 
-        {/* Success state */}
         {exportedImageUrl && (
           <>
             <h2 className="text-lg font-bold mb-1">Your story is ready</h2>
-            <p className="text-xs text-shell-muted mb-5">
-              Optimized for Instagram Stories.
+
+            <p className="text-xs text-shell-muted mb-4 text-center leading-relaxed">
+              Long press the image below to save to your Photos.
             </p>
 
-            {/* Preview of exported image */}
-            <div className="rounded-2xl overflow-hidden shadow-xl mb-6 border border-shell-border/30">
+            {/* Full-width image for easy long-press saving on iOS */}
+            <div className="w-full max-w-[280px] mb-5">
               <img
                 src={exportedImageUrl}
-                alt="Generated story"
-                className="w-[200px] h-auto"
+                alt="Your Shelfie story card"
+                className="w-full h-auto rounded-2xl shadow-xl"
               />
             </div>
 
-            {/* Action buttons */}
             <div className="w-full space-y-2.5 max-w-xs">
-              {supportsShare ? (
+              {supportsShare && (
                 <button
                   onClick={handleShare}
                   className="w-full py-3.5 rounded-full text-white font-semibold text-base shadow-lg active:scale-[0.98] transition-transform"
                   style={{ backgroundColor: 'var(--shell-accent)' }}
                 >
-                  Share to Instagram
-                </button>
-              ) : (
-                <button
-                  onClick={handleSave}
-                  className="w-full py-3.5 rounded-full text-white font-semibold text-base shadow-lg active:scale-[0.98] transition-transform"
-                  style={{ backgroundColor: 'var(--shell-accent)' }}
-                >
-                  Save Image
-                </button>
-              )}
-
-              {supportsShare && (
-                <button
-                  onClick={handleSave}
-                  className="w-full py-3 rounded-full border-2 border-shell-border text-shell-text font-medium text-sm active:scale-[0.98] transition-transform"
-                >
-                  Save Image
+                  Share
                 </button>
               )}
             </div>
 
-            {/* Post-export actions */}
-            <div className="flex gap-4 mt-8">
+            <p className="text-[11px] text-shell-muted mt-4 text-center leading-relaxed max-w-[260px]">
+              Tap <strong>Share</strong> to open your share sheet, then pick Instagram.
+              Or long press the image above to save to Photos first.
+            </p>
+
+            <div className="flex gap-4 mt-6">
               <button
                 onClick={() => {
                   setExportedImageUrl(null);
@@ -159,7 +121,6 @@ export function ExportStep() {
           </>
         )}
 
-        {/* Error state */}
         {!isExporting && !exportedImageUrl && (
           <div className="flex-1 flex flex-col items-center justify-center text-center">
             <p className="text-sm text-shell-muted mb-4">
@@ -179,7 +140,6 @@ export function ExportStep() {
         )}
       </div>
 
-      {/* Credits footer */}
       <div className="text-center pb-6 pt-4">
         <p className="text-[10px] text-shell-muted/50">
           Book data from Open Library · Cover images from respective publishers
