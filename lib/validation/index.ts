@@ -22,7 +22,7 @@ export const storySceneSchema = z.object({
   coverHeight: z.number().positive(),
   title: z.string().min(1).max(500),
   author: z.string().min(1).max(300),
-  rating: z.number().min(0).max(5).step(0.5).optional(),
+  rating: z.number().min(0).max(5).optional(),
   finishedDate: z.string().optional(),
   style: storyStyleSchema,
   palette: colorPaletteSchema,
