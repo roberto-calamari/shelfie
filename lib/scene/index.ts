@@ -1,6 +1,6 @@
 import type { StoryScene, CoverCandidate, WorkSearchResult, ColorPalette, StoryStyle } from '@/types';
 import { formatAuthors, todayISO } from '@/lib/formatting';
-import { autoSelectStyle, paletteFromHex } from '@/lib/styles';
+import { paletteFromHex } from '@/lib/styles';
 
 /**
  * Build a StoryScene from the current wizard selections.
@@ -23,7 +23,6 @@ export function buildScene(params: {
     cover,
     uploadedCover,
     palette: existingPalette,
-    style: existingStyle,
     rating,
     finishedDate = todayISO(),
     showBranding = false,
@@ -38,9 +37,10 @@ export function buildScene(params: {
   const title = titleOverride || work?.title || 'Untitled';
   const author = authorOverride || (work ? formatAuthors(work.authors) : 'Unknown Author');
 
-  // Use existing palette or generate a default
   const palette = existingPalette || paletteFromHex('#8B7D6B');
-  const style = existingStyle || autoSelectStyle(palette);
+
+  // Always use dreamy style
+  const style: StoryStyle = 'dreamy';
 
   return {
     coverUrl,
