@@ -5,13 +5,6 @@ import { useWizardStore } from '@/lib/store';
 import { StepMotion } from '@/components/ui/StepMotion';
 import { StarRating } from '@/components/ui/StarRating';
 import { StoryPreview } from '@/components/preview/StoryPreview';
-import type { StoryStyle } from '@/types';
-
-const STYLE_OPTIONS: { value: StoryStyle; label: string; emoji: string }[] = [
-  { value: 'dreamy', label: 'Dreamy', emoji: '✨' },
-  { value: 'retro', label: 'Retro', emoji: '📄' },
-  { value: 'cinematic', label: 'Cinematic', emoji: '🎬' },
-];
 
 export function CustomizeStep() {
   const store = useWizardStore();
@@ -36,28 +29,6 @@ export function CustomizeStep() {
 
       {/* Controls panel */}
       <div className="flex-1 bg-shell-surface/60 rounded-t-3xl border-t border-shell-border px-6 pt-5 pb-8 space-y-5 overflow-y-auto">
-        {/* Style switcher */}
-        <div>
-          <label className="text-xs font-semibold text-shell-muted uppercase tracking-wider mb-2 block">
-            Style
-          </label>
-          <div className="flex gap-2">
-            {STYLE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => store.setStyle(opt.value)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  scene.style === opt.value
-                    ? 'bg-shell-accent text-white shadow-sm'
-                    : 'bg-shell-surface border border-shell-border text-shell-text'
-                }`}
-              >
-                {opt.emoji} {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Rating */}
         <div>
           <label className="text-xs font-semibold text-shell-muted uppercase tracking-wider mb-2 block">
